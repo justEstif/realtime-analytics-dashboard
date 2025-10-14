@@ -1,71 +1,137 @@
-1.  Project Setup & Basic API (Start here!)
+# Realtime Analytics Dashboard - Implementation Plan
 
-Set up the core infrastructure:
+## Overview
 
-- Initialize Bun project with dependencies
-  - Need to setup typed-htmx
-  - https://tailwindcss.com/docs/installation/tailwind-cli
-  - https://daisyui.com/docs/install/
-  - <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js"></script>
-  - typed-htmx:
-    - https://hono.dev/examples/htmx
-    - bun i -d
-
-- Choose your web framework (Hono or Elysia)
-  - Hono - already setup
-- Create a basic HTTP server that responds to requests
-- Set up project structure (folders for routes, services, workers, etc.)
-  - views/
-    - pages/
-    - partials/
-    - layouts/base.tsx
-
-  - using jsx render:
-    - https://hono.dev/docs/middleware/builtin/jsx-renderer
-    - using: https://hono.dev/docs/middleware/builtin/jsx-renderer#userequestcontext
-
-2. Database Schema Design
-
-Design how you'll store events before building anything that uses them:
-
-- Event table schema (timestamp, event_type, metadata/properties)
-- Indexes for time-range queries
-- Aggregated metrics tables (for pre-calculated summaries)
-- Consider partitioning strategy for time-series data
-
-3. Simple Event Ingestion Endpoint
-
-Build the entry point for data:
-
-- POST /api/events endpoint
-- Basic validation (required fields, data types)
-- Write directly to database (no queue yet - keep it simple)
-- Return success/error responses
-
-4. Basic Dashboard View
-
-Create something visual to see your data:
-
-- Simple HTML page served by your framework
-- Display recent events from the database
-- Basic count metrics
-- This gives you feedback that the system works end-to-end
+Build a working analytics system incrementally: ingest → store → display, then add complexity as needed.
 
 ---
 
-Why This Order?
+## Phase 1: Project Setup & Basic API
 
-Start simple, add complexity incrementally. You'll have a working system (ingest → store → display) within a few
-hours, then you can add:
+### Framework & Dependencies
 
-- Queue system when direct writes become a bottleneck
-- Background workers when you need aggregations
-- Real-time updates (SSE/WebSockets) once you have something worth updating
-- Caching when you identify slow queries
+- **Web Framework**: Hono (already setup)
+- **HTMX**: v2.0.7
+  - CDN: `https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js`
+  - Typed HTMX: `bun i -d typed-htmx`
+  - Reference: https://hono.dev/examples/htmx
+- **Tailwind CSS**: https://tailwindcss.com/docs/installation/tailwind-cli
+- **DaisyUI**: https://daisyui.com/docs/install/
 
-Would you like me to start with the project setup? I can help you:
+### Project Structure
 
-- Initialize the Bun project
-- Set up a framework (I'd suggest Hono for its simplicity)
-- Create the initial folder structure
-- Set up PostgreSQL connection
+```
+src/
+├── views/
+│   ├── layouts/
+│   │   └── base.tsx
+│   ├── pages/
+│   └── partials/
+├── routes/
+├── services/
+└── workers/
+```
+
+### JSX Rendering
+
+- Middleware: https://hono.dev/docs/middleware/builtin/jsx-renderer
+- Context usage: https://hono.dev/docs/middleware/builtin/jsx-renderer#userequestcontext
+
+### Tasks
+
+- [x] Initialize Bun project
+- [x] Set up Hono framework
+- [ ] Configure HTMX and typed-htmx
+- [ ] Set up Tailwind CSS and DaisyUI
+- [ ] Create project folder structure
+- [ ] Set up basic HTTP server
+
+---
+
+## Phase 2: Database Schema Design
+
+### Event Storage
+
+- **Events Table**
+  - `timestamp` (indexed)
+  - `event_type`
+  - `metadata/properties` (JSON)
+
+### Performance Considerations
+
+- Time-range query indexes
+- Aggregated metrics tables (pre-calculated summaries)
+- Time-series data partitioning strategy
+
+### Tasks
+
+- [ ] Design event table schema
+- [ ] Create migration scripts
+- [ ] Set up indexes for time-range queries
+- [ ] Plan aggregation tables
+- [ ] Define partitioning strategy
+
+---
+
+## Phase 3: Event Ingestion Endpoint
+
+### API Endpoint
+
+- **Route**: `POST /api/events`
+- **Validation**: Required fields, data types
+- **Storage**: Direct database writes (no queue initially)
+- **Response**: Success/error status
+
+### Tasks
+
+- [ ] Create POST /api/events endpoint
+- [ ] Implement request validation
+- [ ] Set up database write logic
+- [ ] Add error handling and responses
+
+---
+
+## Phase 4: Basic Dashboard View
+
+### Initial Dashboard
+
+- Simple HTML page served by Hono
+- Display recent events from database
+- Basic count metrics
+- End-to-end system validation
+
+### Tasks
+
+- [ ] Create dashboard HTML page
+- [ ] Query and display recent events
+- [ ] Show basic metrics (counts)
+- [ ] Test full data flow: ingest → store → display
+
+---
+
+## Future Enhancements
+
+Add these features when current implementation becomes a bottleneck:
+
+### Performance & Scalability
+
+- **Queue System**: When direct writes slow down
+- **Background Workers**: For data aggregations
+- **Caching Layer**: When queries become slow
+
+### Real-time Features
+
+- **SSE/WebSockets**: For live dashboard updates
+- **Push Notifications**: For critical events
+
+---
+
+## Next Steps
+
+Set up the core infrastructure:
+
+1. Configure Tailwind CSS and DaisyUI
+2. Set up typed-htmx integration
+3. Create project folder structure
+4. Set up PostgreSQL connection
+5. Begin database schema design
