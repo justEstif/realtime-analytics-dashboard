@@ -1,8 +1,9 @@
 {
   "name": "realtime-analytics-dashboard",
   "scripts": {
-    "dev": "bun run --hot src/index.tsx",
-    "build:css": "bunx @tailwindcss/cli -i ./src/styles/input.css -o ./src/styles/output.css --watch"
+    "dev:js": "bun run --hot src/index.tsx",
+    "dev:css": "bunx @tailwindcss/cli -i ./src/styles/input.css -o ./src/styles/output.css --watch",
+    "dev": "bun run dev:js & bun run dev:css"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.1.14",
