@@ -1,0 +1,12 @@
+[tools]
+"bun" = "latest"
+
+[env]
+# Postgres Configuration
+POSTGRES_DB = "analytics"
+POSTGRES_USER = "analytics_user"
+POSTGRES_PASSWORD = "analytics_pass"
+POSTGRES_HOST = "localhost"
+POSTGRES_PORT = "5432"
+POSTGRES_CONTAINER_NAME = "realtime-analytics-postgres"
+POSTGRES_VOLUME_NAME = "realtime-analytics-postgres-data"

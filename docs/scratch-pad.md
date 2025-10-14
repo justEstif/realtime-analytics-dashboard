@@ -41,10 +41,10 @@ src/
 
 - [x] Initialize Bun project
 - [x] Set up Hono framework
-- [ ] Configure HTMX and typed-htmx
-- [ ] Set up Tailwind CSS and DaisyUI
-- [ ] Create project folder structure
-- [ ] Set up basic HTTP server
+- [x] Configure HTMX and typed-htmx
+- [x] Set up Tailwind CSS and DaisyUI
+- [x] Create project folder structure
+- [x] Set up basic HTTP server
 
 ---
 
