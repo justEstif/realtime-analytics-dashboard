@@ -1,93 +1,59 @@
-# Realtime Analytics Dashboard - Implementation Plan
+## Phase 3: Event Ingestion Endpoint Implementation Plan
 
-## Overview
+### 1. Install Dependencies
 
-Build a working analytics system incrementally: ingest → store → display, then add complexity as needed.
+- Install zod package for validation
+- Install @hono/zod-validator for Hono integration
 
----
+### 2. Create Zod Validation Schema
 
-## Phase 1: Project Setup & Basic API
+- Create src/validators/event.validator.ts
+- Define Zod schema matching database schema:
+  - event_type: required string (max 255 chars)
+  - metadata: required object (Record<string, unknown>)
+  - timestamp: optional ISO date string (defaults to now)
+- Export validator for use with Hono middleware
 
-### Framework & Dependencies
+### 3. Update EventService (src/services/events.ts)
 
-- **Web Framework**: Hono (already setup)
-- **HTMX**: v2.0.7
-  - CDN: `https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js`
-  - Typed HTMX: `bun i -d typed-htmx`
-  - Reference: https://hono.dev/examples/htmx
-- **Tailwind CSS**: https://tailwindcss.com/docs/installation/tailwind-cli
-- **DaisyUI**: https://daisyui.com/docs/install/
+- Replace stub validateEvent() with Zod-based validation
+- Implement createEvent() method:
+  - Use Drizzle ORM to insert into events table
+  - Import db from src/db/index.ts
+  - Import schema types from src/db/schema.ts
+  - Handle database errors appropriately
+  - Return inserted event with generated ID
 
-### Project Structure
+### 4. Implement API Endpoint (src/routes/api.ts)
 
-```
-src/
-├── views/
-│   ├── layouts/
-│   │   └── base.tsx
-│   ├── pages/
-│   └── partials/
-├── routes/
-├── services/
-└── workers/
-```
+- Create POST /api/events route
+- Use @hono/zod-validator middleware for request validation
+- Call EventService.createEvent() for storage
+- Return responses:
+  - 201 Created: { success: true, event: {...} }
+  - 400 Bad Request: Validation errors with field details
+  - 500 Internal Server Error: Database/unexpected errors
 
-### JSX Rendering
+### 5. Error Handling
 
-- Middleware: https://hono.dev/docs/middleware/builtin/jsx-renderer
-- Context usage: https://hono.dev/docs/middleware/builtin/jsx-renderer#userequestcontext
+- Implement Hono validator error handling pattern (per docs)
+- Map Zod validation errors to user-friendly format
+- Add try-catch for database errors in EventService
+- Return appropriate HTTP status codes and error messages
 
-### Tasks
+### Files to Modify
 
-- [x] Initialize Bun project
-- [x] Set up Hono framework
-- [x] Configure HTMX and typed-htmx
-- [x] Set up Tailwind CSS and DaisyUI
-- [x] Create project folder structure
-- [x] Set up basic HTTP server
+- package.json - Add dependencies
+- src/validators/event.validator.ts - New file
+- src/services/events.ts - Implement createEvent() and validation
+- src/routes/api.ts - Add POST /events endpoint with validation
 
----
+### Testing Approach
 
-## Phase 2: Database Schema Design
-
-### Event Storage
-
-- **Events Table**
-  - `timestamp` (indexed)
-  - `event_type`
-  - `metadata/properties` (JSON)
-
-### Performance Considerations
-
-- Time-range query indexes
-- Aggregated metrics tables (pre-calculated summaries)
-- Time-series data partitioning strategy
-
-### Tasks
-
-- [ ] Design event table schema
-- [ ] Create migration scripts
-- [ ] Set up indexes for time-range queries
-- [ ] Plan aggregation tables
-- [ ] Define partitioning strategy
-
----
-
-## Phase 3: Event Ingestion Endpoint
-
-### API Endpoint
-
-- **Route**: `POST /api/events`
-- **Validation**: Required fields, data types
-- **Storage**: Direct database writes (no queue initially)
-- **Response**: Success/error status
-
-### Tasks
-
-- [ ] Create POST /api/events endpoint
-- [ ] Implement request validation
-- [ ] Set up database write logic
-- [ ] Add error handling and responses
+- Use curl/Postman to test endpoint
+- Verify validation errors for invalid payloads
+- Confirm successful inserts in PostgreSQL
+- Check error responses match expected format
 
 ---
 
