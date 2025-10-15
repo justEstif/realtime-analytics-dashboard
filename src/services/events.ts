@@ -2,31 +2,41 @@
  * Event Service
  *
  * Handles business logic for event ingestion and retrieval.
- * Phase 3: Will implement event validation, storage, and querying.
  */
 
-export interface Event {
-  id?: string;
-  timestamp: Date;
-  event_type: string;
-  metadata?: Record<string, any>;
-}
+import { db } from "../db";
+import { events, type Event, type NewEvent } from "../db/schema";
+import type { EventAttributes } from "../validators/event.validator";
 
 export class EventService {
   /**
-   * Validate event data before storage
-   */
-  static validateEvent(data: unknown): { valid: boolean; error?: string } {
-    // TODO: Implement validation logic
-    return { valid: true };
-  }
-
-  /**
    * Store event in database
+   *
+   * @param attributes - Event attributes from validated request
+   * @returns Created event with generated ID and timestamp
+   * @throws Error if database write fails
    */
-  static async createEvent(event: Event): Promise<Event> {
-    // TODO: Implement database write
-    throw new Error("Not implemented");
+  static async createEvent(attributes: EventAttributes): Promise<Event> {
+    try {
+      // Prepare event data for insertion
+      const newEvent: NewEvent = {
+        eventType: attributes.event_type,
+        metadata: attributes.metadata,
+        // Use provided timestamp or let database set default
+        ...(attributes.timestamp && {
+          timestamp: new Date(attributes.timestamp),
+        }),
+      };
+
+      // Insert event and return the created record
+      const [createdEvent] = await db.insert(events).values(newEvent).returning();
+
+      return createdEvent;
+    } catch (error) {
+      // Log error for debugging (in production, use proper logging)
+      console.error("Database error creating event:", error);
+      throw new Error("Failed to create event");
+    }
   }
 
   /**
