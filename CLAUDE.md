@@ -16,8 +16,13 @@ A real-time analytics dashboard built as a learning project to explore data-inte
 ### Environment Variables
 
 Defined in `mise.toml`:
+
 - PostgreSQL configuration: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT`
 - Container names: `POSTGRES_CONTAINER_NAME`, `POSTGRES_VOLUME_NAME`
+
+### Mise Tasks
+
+Custom mise tasks follow Fish shell conventions. See `docs/mise-tasks-pattern.md` for task creation guidelines.
 
 ## Common Commands
 
@@ -40,6 +45,7 @@ The application runs on http://localhost:3000
 ## Architecture
 
 ### Core Stack
+
 - **Runtime**: Bun
 - **Web Framework**: Hono (with JSX renderer for server-side rendering)
 - **Frontend**: HTMX + TailwindCSS + DaisyUI
@@ -71,17 +77,20 @@ src/
 **Event Flow Pipeline** (planned): Submission → Validation → Queue → Processing → Storage → Presentation
 
 **Rendering Strategy**:
+
 - JSX renderer middleware applies BaseLayout to page routes
 - API routes return JSON directly (no layout)
 - HTMX handles partial updates via HTML fragments from partials/
 
 **TypeScript Configuration**:
+
 - Strict mode enabled
 - JSX mode: `react-jsx` with import source `hono/jsx`
 
 ### Current Implementation Status
 
 The project is in early development:
+
 - ✅ Basic Hono server with hot reload
 - ✅ Server-side JSX rendering with layouts
 - ✅ TailwindCSS + DaisyUI integration
@@ -97,23 +106,29 @@ The project is in early development:
 ## Important Implementation Details
 
 ### Middleware Order Matters
+
 The JSX renderer middleware in `index.tsx` wraps all routes with BaseLayout. API routes that need to return JSON should be registered on a separate Hono instance without the renderer middleware (already done for `/api` routes).
 
 ### Static File Serving
+
 CSS is served from `./src/styles/*` via `serveStatic` middleware. The output.css file is git-ignored and must be generated via the Tailwind watcher.
 
 ### Database Connection
+
 PostgreSQL configuration is present in mise.toml but not yet connected to the application. When implementing database features, create a connection pool using the environment variables provided by mise.
 
 ### Event Service Pattern
+
 The `EventService` class in `src/services/events.ts` defines the interface for event operations but methods throw "Not implemented" errors. Implement these methods when adding database integration.
 
 ### Real-Time Updates
+
 HTMX is loaded in the BaseLayout. For real-time dashboard updates, implement Server-Sent Events endpoints and use HTMX's SSE extension or polling with `hx-trigger`.
 
 ## Project Goals
 
 This is a **learning project** focused on understanding:
+
 - Queue-based architectures and worker patterns
 - Time-series data modeling and optimization
 - Real-time communication (SSE/WebSockets)

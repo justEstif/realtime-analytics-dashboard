@@ -1,0 +1,4 @@
+#!/usr/bin/env fish
+#MISE description="Generate migration files from Drizzle schema"
+
+bunx drizzle-kit generate

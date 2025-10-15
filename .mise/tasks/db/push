@@ -1,0 +1,4 @@
+#!/usr/bin/env fish
+#MISE description="Push schema changes directly to database (no migrations, dev only)"
+
+bunx drizzle-kit push

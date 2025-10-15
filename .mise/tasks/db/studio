@@ -1,0 +1,4 @@
+#!/usr/bin/env fish
+#MISE description="Launch Drizzle Studio GUI for database exploration"
+
+bunx drizzle-kit studio

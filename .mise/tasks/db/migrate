@@ -1,0 +1,4 @@
+#!/usr/bin/env fish
+#MISE description="Apply pending migrations to PostgreSQL database"
+
+bunx drizzle-kit migrate
