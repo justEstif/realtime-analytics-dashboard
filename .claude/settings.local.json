@@ -1,13 +1,9 @@
 {
   "permissions": {
-    "allow": [
-      "mcp__chrome-devtools"
-    ],
+    "allow": ["mcp__chrome-devtools", "mcp__context7"],
     "deny": [],
     "ask": []
   },
-  "enabledMcpjsonServers": [
-    "chrome-devtools"
-  ],
-  "enableAllProjectMcpServers": true
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": ["chrome-devtools"]
 }
