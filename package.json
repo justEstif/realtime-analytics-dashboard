@@ -6,10 +6,12 @@
     "dev": "bun run dev:js & bun run dev:css"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.7.4",
     "@tailwindcss/cli": "^4.1.14",
     "drizzle-orm": "^0.44.6",
     "hono": "^4.9.12",
-    "tailwindcss": "^4.1.14"
+    "tailwindcss": "^4.1.14",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/bun": "latest",
