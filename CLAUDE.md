@@ -24,6 +24,10 @@ Defined in `mise.toml`:
 
 Custom mise tasks follow Fish shell conventions. See `docs/mise-tasks-pattern.md` for task creation guidelines.
 
+### JSON:API Specification
+
+All API endpoints follow the [JSON:API specification](https://jsonapi.org/). See `docs/jsonapi-spec.md` for implementation details and examples.
+
 ## Common Commands
 
 ```bash
