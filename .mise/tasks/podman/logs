@@ -1,0 +1,5 @@
+#!/usr/bin/env fish
+#MISE description="View pod logs for all containers"
+
+echo "Showing logs for all containers in pod '$POD_NAME'..."
+podman pod logs -f $POD_NAME

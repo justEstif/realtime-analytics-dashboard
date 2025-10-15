@@ -1,0 +1,5 @@
+#!/usr/bin/env fish
+#MISE description="Stop analytics pod"
+
+podman pod stop $POD_NAME
+echo "✓ Pod '$POD_NAME' stopped"

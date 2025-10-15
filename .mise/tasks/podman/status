@@ -1,0 +1,9 @@
+#!/usr/bin/env fish
+#MISE description="Check pod and container status"
+
+echo "Pod Status:"
+podman pod ps --filter name=^$POD_NAME\$ --format "  {{.Name}}: {{.Status}} ({{.NumberOfContainers}} containers)"
+
+echo ""
+echo "Container Status:"
+podman ps -a --filter pod=$POD_NAME --format "  {{.Names}}: {{.Status}}"

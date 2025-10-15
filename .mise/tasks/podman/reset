@@ -1,0 +1,15 @@
+#!/usr/bin/env fish
+#MISE description="Destroy pod, containers, and volumes (DESTRUCTIVE)"
+
+echo "Stopping and removing pod..."
+podman pod stop $POD_NAME 2>/dev/null; or true
+podman pod rm $POD_NAME 2>/dev/null; or true
+
+echo "Removing containers..."
+podman rm $POSTGRES_CONTAINER_NAME 2>/dev/null; or true
+podman rm $REDIS_CONTAINER_NAME 2>/dev/null; or true
+
+echo "Removing volumes..."
+podman volume rm $POSTGRES_VOLUME_NAME 2>/dev/null; or true
+
+echo "✓ Reset complete"

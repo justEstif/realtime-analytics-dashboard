@@ -1,0 +1,5 @@
+#!/usr/bin/env fish
+#MISE description="Restart analytics pod"
+
+podman pod restart $POD_NAME
+echo "✓ Pod '$POD_NAME' restarted"

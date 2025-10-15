@@ -2,6 +2,9 @@
 "bun" = "latest"
 
 [env]
+# Pod Configuration
+POD_NAME = "realtime-analytics-pod"
+
 # Postgres Configuration
 POSTGRES_DB = "analytics"
 POSTGRES_USER = "analytics_user"
@@ -10,3 +13,7 @@ POSTGRES_HOST = "localhost"
 POSTGRES_PORT = "5432"
 POSTGRES_CONTAINER_NAME = "realtime-analytics-postgres"
 POSTGRES_VOLUME_NAME = "realtime-analytics-postgres-data"
+
+# Redis Configuration
+REDIS_PORT = "6379"
+REDIS_CONTAINER_NAME = "realtime-analytics-redis"

@@ -1,0 +1,25 @@
+#!/usr/bin/env fish
+#MISE description="Start analytics pod with all services (Postgres + Redis)"
+
+# Create pod if it doesn't exist
+podman pod create --name $POD_NAME -p $POSTGRES_PORT:5432 -p $REDIS_PORT:6379 2>/dev/null; or true
+
+# Start Postgres container in the pod
+podman run -d \
+    --pod $POD_NAME \
+    --name $POSTGRES_CONTAINER_NAME \
+    -e POSTGRES_DB=$POSTGRES_DB \
+    -e POSTGRES_USER=$POSTGRES_USER \
+    -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+    -v $POSTGRES_VOLUME_NAME:/var/lib/postgresql/data \
+    docker.io/library/postgres:16 2>/dev/null; or podman start $POSTGRES_CONTAINER_NAME
+
+# Start Redis container in the pod
+podman run -d \
+    --pod $POD_NAME \
+    --name $REDIS_CONTAINER_NAME \
+    docker.io/library/redis:7-alpine 2>/dev/null; or podman start $REDIS_CONTAINER_NAME
+
+echo "✓ Pod '$POD_NAME' started with:"
+echo "  - Postgres: localhost:$POSTGRES_PORT"
+echo "  - Redis: localhost:$REDIS_PORT"
