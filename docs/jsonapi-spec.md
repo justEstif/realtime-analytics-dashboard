@@ -16,6 +16,10 @@ JSON:API is a specification for building APIs in JSON. It provides a consistent 
 
 All API endpoints under `/api` return responses conforming to the JSON:API v1.1 specification.
 
+### Content Type
+
+While the JSON:API specification technically recommends `application/vnd.api+json`, we use the standard `application/json` content type for simplicity. This allows better compatibility with standard HTTP clients and reduces boilerplate while maintaining the JSON:API response structure.
+
 ### Basic Response Structure
 
 ```json
