@@ -17,6 +17,7 @@
     "@types/bun": "latest",
     "daisyui": "^5.3.0",
     "drizzle-kit": "^0.31.5",
+    "postgres": "^3.4.7",
     "typed-htmx": "^0.3.1"
   }
 }
