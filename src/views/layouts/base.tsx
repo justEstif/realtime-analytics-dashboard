@@ -17,6 +17,7 @@ export const BaseLayout: FC<BaseLayoutProps> = ({
         <title>{title}</title>
         <link href="/styles/output.css" rel="stylesheet" />
         <script src="https://cdn.jsdelivr.net/npm/htmx.org@2.0.7/dist/htmx.min.js"></script>
+        <script src="https://unpkg.com/htmx.org@2.0.7/dist/ext/sse.js"></script>
       </head>
       <body>{children}</body>
     </html>
