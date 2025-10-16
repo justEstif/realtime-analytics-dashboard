@@ -8,6 +8,15 @@ import {
   createError,
   zodErrorsToJsonApi,
 } from "../utils/jsonapi";
+import { jsx } from "hono/jsx";
+import { MetricsSection } from "../views/partials/metrics-section";
+import { EventRow } from "../views/partials/event-row";
+
+// Helper function to render JSX to HTML string
+// BUG: Remove this
+function renderJSXToString(element: JSX.Element): string {
+  return element.toString();
+}
 
 const api = new Hono();
 
@@ -76,6 +85,77 @@ api.post(
 // Health check endpoint
 api.get("/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Server-Sent Events endpoint for real-time dashboard updates
+api.get("/sse/dashboard", async (c) => {
+  // Set SSE headers
+  c.header("Content-Type", "text/event-stream");
+  c.header("Cache-Control", "no-cache");
+  c.header("Connection", "keep-alive");
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      // Send initial connection event
+      const encoder = new TextEncoder();
+      controller.enqueue(
+        encoder.encode("event: connected\ndata: {}\n\n")
+      );
+
+      // Interval-based updates (every 3 seconds)
+      const interval = setInterval(async () => {
+        try {
+          // Fetch latest metrics
+          const stats = await EventService.getEventStats();
+
+          // Render metrics section to HTML
+          const metricsHtml = renderJSXToString(
+            jsx(MetricsSection, { stats })
+          );
+
+          // Send metrics update event
+          controller.enqueue(
+            encoder.encode(
+              `event: metrics-update\ndata: ${metricsHtml}\n\n`
+            )
+          );
+
+          // Fetch latest event
+          const [latestEvent] = await EventService.getRecentEvents(1);
+          if (latestEvent) {
+            // Render event row to HTML
+            const eventHtml = renderJSXToString(
+              jsx(EventRow, { event: latestEvent })
+            );
+
+            // Send new event
+            controller.enqueue(
+              encoder.encode(`event: new-event\ndata: ${eventHtml}\n\n`)
+            );
+          }
+        } catch (error) {
+          console.error("SSE error:", error);
+          // Send error event
+          controller.enqueue(
+            encoder.encode(
+              `event: error\ndata: {"message": "Failed to fetch updates"}\n\n`
+            )
+          );
+        }
+      }, 3000); // Update every 3 seconds
+
+      // Cleanup on connection close
+      const req = c.req.raw;
+      if (req.signal) {
+        req.signal.addEventListener("abort", () => {
+          clearInterval(interval);
+          controller.close();
+        });
+      }
+    },
+  });
+
+  return new Response(stream);
 });
 
 export default api;
