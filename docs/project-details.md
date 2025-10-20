@@ -118,7 +118,7 @@ Event data is stored with indexes optimized for time-range queries. Aggregated v
 
 **Database:** PostgreSQL - Robust relational database with excellent time-series capabilities
 
-**Queue:** BullMQ + Redis - Reliable job queue for background processing
+**Queue & Workers:** Bun Workers + Redis - Native background job processing with Redis-backed task queuing
 
 **Frontend:** HTML + HTMX + Minimal CSS - Server-rendered with dynamic updates
 

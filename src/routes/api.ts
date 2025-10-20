@@ -2,19 +2,20 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { createEventSchema } from "../validators/event.validator";
 import { EventService } from "../services/events";
+import { QueueService } from "../services/queue";
+import { checkRedisHealth } from "../lib/redis";
 import {
   createSuccessResponse,
   createErrorResponse,
   createError,
   zodErrorsToJsonApi,
 } from "../utils/jsonapi";
-import { jsx } from "hono/jsx";
+import { FC, jsx } from "hono/jsx";
 import { MetricsSection } from "../views/partials/metrics-section";
 import { EventRow } from "../views/partials/event-row";
 
 // Helper function to render JSX to HTML string
-// BUG: Remove this
-function renderJSXToString(element: JSX.Element): string {
+function renderJSXToString(element: FC): string {
   return element.toString();
 }
 
@@ -42,30 +43,33 @@ api.post(
       const { data } = c.req.valid("json");
       const attributes = data.attributes;
 
-      // Create event in database
-      const createdEvent = await EventService.createEvent(attributes);
+      // Enqueue event for async processing
+      const eventId = await QueueService.enqueueEvent(attributes);
 
       // Build response URL
-      const eventUrl = `/api/events/${createdEvent.id}`;
+      const eventUrl = `/api/events/${eventId}`;
 
       // Format JSON:API success response
       const response = createSuccessResponse(
         "events",
-        createdEvent.id,
+        eventId,
         {
-          event_type: createdEvent.eventType,
-          timestamp: createdEvent.timestamp.toISOString(),
-          metadata: createdEvent.metadata,
+          event_type: attributes.event_type,
+          metadata: attributes.metadata,
+          // Include optional timestamp if provided
+          ...(attributes.timestamp && {
+            timestamp: attributes.timestamp,
+          }),
         },
         eventUrl,
       );
 
-      // Return 201 Created with Location header
-      return c.json(response, 201, {
+      // Return 202 Accepted (event queued for processing)
+      return c.json(response, 202, {
         Location: eventUrl,
       });
     } catch (error) {
-      console.error("Error creating event:", error);
+      console.error("Error queuing event:", error);
 
       // Return 500 Internal Server Error
       return c.json(
@@ -73,7 +77,7 @@ api.post(
           createError(
             "500",
             "Internal Server Error",
-            "An error occurred while processing your request",
+            "An error occurred while queuing your request",
           ),
         ]),
         500,
@@ -83,11 +87,38 @@ api.post(
 );
 
 // Health check endpoint
-api.get("/health", (c) => {
-  return c.json({ status: "ok", timestamp: new Date().toISOString() });
+api.get("/health", async (c) => {
+  try {
+    const redisHealthy = await checkRedisHealth();
+    const queueHealth = await QueueService.getQueueHealth();
+
+    const health = {
+      status: redisHealthy && queueHealth.healthy ? "healthy" : "degraded",
+      timestamp: new Date().toISOString(),
+      components: {
+        redis: redisHealthy ? "ok" : "error",
+        queue: queueHealth.healthy ? "ok" : "degraded",
+        queueMetrics: queueHealth.metrics,
+      },
+    };
+
+    const statusCode = health.status === "healthy" ? 200 : 503;
+    return c.json(health, statusCode);
+  } catch (error) {
+    console.error("Health check failed:", error);
+    return c.json(
+      {
+        status: "error",
+        timestamp: new Date().toISOString(),
+        error: "Health check failed",
+      },
+      500,
+    );
+  }
 });
 
 // Server-Sent Events endpoint for real-time dashboard updates
+// Uses Redis pub/sub for efficient real-time updates from workers
 api.get("/sse/dashboard", async (c) => {
   // Set SSE headers
   c.header("Content-Type", "text/event-stream");
@@ -98,59 +129,127 @@ api.get("/sse/dashboard", async (c) => {
     async start(controller) {
       // Send initial connection event
       const encoder = new TextEncoder();
+      const clientId = crypto.randomUUID();
+
       controller.enqueue(
-        encoder.encode("event: connected\ndata: {}\n\n")
+        encoder.encode(
+          `event: connected\ndata: ${JSON.stringify({ clientId })}\n\n`,
+        ),
       );
 
-      // Interval-based updates (every 3 seconds)
-      const interval = setInterval(async () => {
-        try {
-          // Fetch latest metrics
-          const stats = await EventService.getEventStats();
+      try {
+        // Subscribe to worker events via Redis pub/sub
+        await pubsub.subscribe(
+          [
+            "worker:event-processed",
+            "aggregation:metrics-calculated",
+            "queue:event-failed",
+          ],
+          async (channel, message) => {
+            try {
+              const encoder = new TextEncoder();
 
-          // Render metrics section to HTML
-          const metricsHtml = renderJSXToString(
-            jsx(MetricsSection, { stats })
-          );
+              if (channel === "worker:event-processed") {
+                // Fetch latest event to display
+                const [latestEvent] = await EventService.getRecentEvents(1);
+                if (latestEvent) {
+                  const eventHtml = renderJSXToString(
+                    jsx(EventRow, { event: latestEvent }),
+                  );
 
-          // Send metrics update event
-          controller.enqueue(
-            encoder.encode(
-              `event: metrics-update\ndata: ${metricsHtml}\n\n`
-            )
-          );
+                  controller.enqueue(
+                    encoder.encode(
+                      `event: new-event\ndata: ${eventHtml}\n\n`,
+                    ),
+                  );
+                }
 
-          // Fetch latest event
-          const [latestEvent] = await EventService.getRecentEvents(1);
-          if (latestEvent) {
-            // Render event row to HTML
-            const eventHtml = renderJSXToString(
-              jsx(EventRow, { event: latestEvent })
+                // Fetch updated metrics
+                const stats = await EventService.getEventStats();
+                const metricsHtml = renderJSXToString(
+                  jsx(MetricsSection, { stats }),
+                );
+
+                controller.enqueue(
+                  encoder.encode(
+                    `event: metrics-update\ndata: ${metricsHtml}\n\n`,
+                  ),
+                );
+              } else if (channel === "aggregation:metrics-calculated") {
+                // Send metrics update when aggregates are calculated
+                const stats = await EventService.getEventStats();
+                const metricsHtml = renderJSXToString(
+                  jsx(MetricsSection, { stats }),
+                );
+
+                controller.enqueue(
+                  encoder.encode(
+                    `event: aggregates-updated\ndata: ${metricsHtml}\n\n`,
+                  ),
+                );
+              } else if (channel === "queue:event-failed") {
+                // Send warning about failed events
+                const failureMessage = JSON.stringify({
+                  type: "event-failure",
+                  data: message,
+                  timestamp: new Date().toISOString(),
+                });
+
+                controller.enqueue(
+                  encoder.encode(
+                    `event: warning\ndata: ${failureMessage}\n\n`,
+                  ),
+                );
+              }
+            } catch (error) {
+              console.error("SSE pub/sub handler error:", error);
+              const errorMsg = JSON.stringify({
+                message: "Error processing update",
+              });
+
+              controller.enqueue(
+                encoder.encode(`event: error\ndata: ${errorMsg}\n\n`),
+              );
+            }
+          },
+        );
+
+        // Also send periodic metrics refreshes (every 5 seconds) as fallback
+        // in case no worker updates are coming
+        const fallbackInterval = setInterval(async () => {
+          try {
+            const stats = await EventService.getEventStats();
+            const metricsHtml = renderJSXToString(
+              jsx(MetricsSection, { stats }),
             );
 
-            // Send new event
             controller.enqueue(
-              encoder.encode(`event: new-event\ndata: ${eventHtml}\n\n`)
+              encoder.encode(
+                `event: metrics-refresh\ndata: ${metricsHtml}\n\n`,
+              ),
             );
+          } catch (error) {
+            console.error("SSE fallback interval error:", error);
           }
-        } catch (error) {
-          console.error("SSE error:", error);
-          // Send error event
-          controller.enqueue(
-            encoder.encode(
-              `event: error\ndata: {"message": "Failed to fetch updates"}\n\n`
-            )
-          );
-        }
-      }, 3000); // Update every 3 seconds
+        }, 5000);
 
-      // Cleanup on connection close
-      const req = c.req.raw;
-      if (req.signal) {
-        req.signal.addEventListener("abort", () => {
-          clearInterval(interval);
-          controller.close();
-        });
+        // Cleanup on connection close
+        const req = c.req.raw;
+        if (req.signal) {
+          req.signal.addEventListener("abort", () => {
+            clearInterval(fallbackInterval);
+            controller.close();
+            console.log(`SSE client ${clientId} disconnected`);
+          });
+        }
+      } catch (error) {
+        console.error("SSE setup error:", error);
+        controller.enqueue(
+          encoder.encode(
+            `event: error\ndata: ${JSON.stringify({ message: "Connection setup failed" })}\n\n`,
+          ),
+        );
+        controller.close();
       }
     },
   });
