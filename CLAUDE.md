@@ -54,7 +54,7 @@ The application runs on http://localhost:3000
 - **Web Framework**: Hono (with JSX renderer for server-side rendering)
 - **Frontend**: HTMX + TailwindCSS + DaisyUI
 - **Database**: PostgreSQL (not yet integrated)
-- **Planned**: BullMQ + Redis for background job processing
+- **Planned**: Bun Workers + Redis for background job processing
 
 ### Application Structure
 
